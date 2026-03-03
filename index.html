@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html>
 <head>
@@ -976,8 +977,8 @@
 </div>
 
 <script>
-    // ===========================================
-// BEDMAS ADVANCED ENGINE - TOUCH OPTIMIZED
+// ===========================================
+// BEDMAS ADVANCED ENGINE - COMPLETE VERSION
 // ===========================================
 
 const BOARD_SIZE = 15;
@@ -1011,33 +1012,9 @@ let playerHasActed = false;
 // Game history
 let gameHistory = [];
 
-// Add touch tracking
-let touchStartX = 0;
-let touchStartY = 0;
-let longPressTimer = null;
-
 window.onload = function() {
     loadGameHistory();
     init();
-    
-    // Prevent default touch behaviors
-    document.addEventListener('touchmove', (e) => {
-        if (e.target.classList.contains('tile') || e.target.classList.contains('cell')) {
-            e.preventDefault();
-        }
-    }, { passive: false });
-    
-    document.addEventListener('touchstart', (e) => {
-        if (e.target.classList.contains('tile') || e.target.classList.contains('cell')) {
-            e.preventDefault();
-        }
-    }, { passive: false });
-    
-    // Add viewport meta for better mobile experience
-    const viewport = document.querySelector('meta[name=viewport]');
-    if (viewport) {
-        viewport.content = 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no';
-    }
 };
 
 function init() {
@@ -1170,10 +1147,10 @@ function updateTimerDisplay() {
     if (el) {
         el.textContent = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
         if (timeLeft <= 30) {
-            el.style.backgroundColor = "#ff6b6b";
+            el.style.color = "#ff6b6b";
             el.classList.add('timer-warning');
         } else {
-            el.style.backgroundColor = "rgba(255,255,255,0.2)";
+            el.style.color = "white";
             el.classList.remove('timer-warning');
         }
     }
@@ -1242,10 +1219,10 @@ function addLogEntry(message, type = 'player') {
 }
 
 function updateTurnUI() {
-    // Update tile interactivity
+    // Update rack draggability
     const tiles = document.querySelectorAll('.tile');
     tiles.forEach(tile => {
-        tile.style.pointerEvents = gameActive && currentTurn === 'player' && !aiMoveInProgress ? 'auto' : 'none';
+        tile.draggable = gameActive && currentTurn === 'player' && !aiMoveInProgress;
     });
     
     // Update button states
@@ -1306,102 +1283,6 @@ function shuffle(arr) {
     }
 }
 
-/* ===== TOUCH HANDLERS ===== */
-
-function handleTileSelection(e, tile, value, index) {
-    e.preventDefault();
-    e.stopPropagation();
-    
-    if (!gameActive || currentTurn !== 'player' || aiMoveInProgress) return;
-    
-    // Remove previous selection
-    document.querySelectorAll('.tile.selected').forEach(t => t.classList.remove('selected'));
-    document.querySelectorAll('.cell.preview').forEach(c => c.classList.remove('preview'));
-    
-    // Select this tile
-    tile.classList.add('selected');
-    draggedValue = value;
-    draggedIndex = index;
-    playerHasActed = true;
-    
-    // Show placement preview
-    showPlacementPreview(value);
-    
-    // Add visual feedback
-    tile.style.transform = 'scale(1.1)';
-}
-
-function showPlacementPreview(value) {
-    // Add preview class to valid empty cells
-    document.querySelectorAll('.cell').forEach(cell => {
-        const r = parseInt(cell.dataset.row);
-        const c = parseInt(cell.dataset.col);
-        
-        // Check if cell is valid for placement
-        if (r > 0 && r < BOARD_SIZE - 1 && c > 0 && c < BOARD_SIZE - 1 && board[r][c] === null) {
-            cell.classList.add('preview');
-            cell.setAttribute('data-preview-value', value);
-            
-            // Add tap handler for placement
-            cell.removeEventListener('click', handleCellTap);
-            cell.addEventListener('click', handleCellTap, { once: true });
-        }
-    });
-}
-
-function handleCellTap(e) {
-    e.preventDefault();
-    e.stopPropagation();
-    
-    if (!gameActive || draggedValue === null || currentTurn !== 'player' || aiMoveInProgress) return;
-
-    const target = e.target.closest('.cell');
-    if (!target) return;
-    
-    const r = parseInt(target.dataset.row);
-    const c = parseInt(target.dataset.col);
-
-    // Prevent placing on labels or occupied slots
-    if (r === 0 || r === 14 || c === 0 || c === 14 || board[r][c] !== null) return;
-
-    // Clear previews and selection
-    document.querySelectorAll('.cell.preview').forEach(c => c.classList.remove('preview'));
-    document.querySelectorAll('.tile.selected').forEach(t => {
-        t.classList.remove('selected');
-        t.style.transform = '';
-    });
-
-    // Animate placement
-    target.classList.add('selection-pulse');
-    setTimeout(() => target.classList.remove('selection-pulse'), 500);
-
-    // Place the tile
-    board[r][c] = `player_${draggedValue}`;
-    placedThisTurn.push({row: r, col: c, value: draggedValue, fromRack: draggedIndex !== null});
-
-    if (draggedIndex !== null) {
-        player.rack.splice(draggedIndex, 1);
-    }
-
-    // Clear selection
-    draggedValue = null;
-    draggedIndex = null;
-    
-    // Mark that player has acted
-    playerHasActed = true;
-    
-    renderBoard();
-    renderRack();
-    
-    // Update submit button state
-    document.getElementById('submitBtn').disabled = false;
-    
-    // Add haptic feedback if available
-    if (window.navigator && window.navigator.vibrate) {
-        window.navigator.vibrate(50);
-    }
-}
-
 /* ===== RENDERING ===== */
 
 function renderBoard() {
@@ -1441,8 +1322,16 @@ function renderBoard() {
                 cell.classList.remove('player-turn-highlight');
             }
 
-            // Add click handler for placement
-            cell.addEventListener('click', handleCellTap);
+            cell.ondragover = e => e.preventDefault();
+            cell.ondrop = dropTile;
+            
+            // Touch support for mobile
+            cell.ontouchstart = (e) => {
+                e.preventDefault();
+                if (currentTurn === 'player' && gameActive && !aiMoveInProgress) {
+                    // Simple touch handling
+                }
+            };
             
             el.appendChild(cell);
         }
@@ -1502,23 +1391,36 @@ function renderRack() {
         let t = document.createElement("div");
         t.className = "tile";
         t.textContent = tile;
+        t.draggable = gameActive && currentTurn === 'player' && !aiMoveInProgress && 'draggable' in document.createElement('span');
+        t.ondragstart = (e) => {
+            if (currentTurn === 'player' && !aiMoveInProgress) {
+                draggedValue = tile;
+                draggedIndex = index;
+                t.classList.add('selected');
+                playerHasActed = true; // Track player action
+            } else {
+                e.preventDefault();
+            }
+        };
         
-        // Touch events for mobile
-        t.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            handleTileSelection(e, t, tile, index);
-        }, { passive: false });
+        t.ondragend = () => {
+            t.classList.remove('selected');
+        };
         
-        t.addEventListener('mousedown', (e) => {
+        // Touch support for mobile
+        t.ontouchstart = (e) => {
             e.preventDefault();
-            handleTileSelection(e, t, tile, index);
-        });
+            if (currentTurn === 'player' && !aiMoveInProgress) {
+                draggedValue = tile;
+                draggedIndex = index;
+                t.classList.add('selected');
+                playerHasActed = true;
+            }
+        };
         
-        // Add click as fallback
-        t.addEventListener('click', (e) => {
-            e.preventDefault();
-            handleTileSelection(e, t, tile, index);
-        });
+        t.ontouchend = () => {
+            t.classList.remove('selected');
+        };
         
         el.appendChild(t);
     });
@@ -1532,23 +1434,35 @@ function renderOperators() {
         let t = document.createElement("div");
         t.className = "tile operator-tile";
         t.textContent = op;
+        t.draggable = gameActive && currentTurn === 'player' && !aiMoveInProgress && 'draggable' in document.createElement('span');
+        t.ondragstart = (e) => {
+            if (currentTurn === 'player' && !aiMoveInProgress) {
+                draggedValue = op;
+                draggedIndex = null;
+                t.classList.add('selected');
+                playerHasActed = true;
+            } else {
+                e.preventDefault();
+            }
+        };
         
-        // Touch events for mobile
-        t.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            handleTileSelection(e, t, op, null);
-        }, { passive: false });
+        t.ondragend = () => {
+            t.classList.remove('selected');
+        };
         
-        t.addEventListener('mousedown', (e) => {
+        t.ontouchstart = (e) => {
             e.preventDefault();
-            handleTileSelection(e, t, op, null);
-        });
+            if (currentTurn === 'player' && !aiMoveInProgress) {
+                draggedValue = op;
+                draggedIndex = null;
+                t.classList.add('selected');
+                playerHasActed = true;
+            }
+        };
         
-        // Add click as fallback
-        t.addEventListener('click', (e) => {
-            e.preventDefault();
-            handleTileSelection(e, t, op, null);
-        });
+        t.ontouchend = () => {
+            t.classList.remove('selected');
+        };
         
         el.appendChild(t);
     });
@@ -1564,13 +1478,6 @@ function endTurn() {
         clearTimeout(turnTimeout);
         turnTimeout = null;
     }
-    
-    // Clear any selected tiles
-    document.querySelectorAll('.tile.selected').forEach(t => {
-        t.classList.remove('selected');
-        t.style.transform = '';
-    });
-    document.querySelectorAll('.cell.preview').forEach(c => c.classList.remove('preview'));
     
     // If player placed tiles but didn't submit, handle gracefully
     if (placedThisTurn.length > 0) {
@@ -1625,10 +1532,6 @@ function switchToPlayerTurn() {
     aiMoveInProgress = false;
     playerHasActed = false;
     
-    // Clear dragged value
-    draggedValue = null;
-    draggedIndex = null;
-    
     // Update UI
     updateTurnIndicator();
     updateTurnUI();
@@ -1650,6 +1553,43 @@ function switchToPlayerTurn() {
 
 /* ===== CONTROLS & LOGIC ===== */
 
+function dropTile(e) {
+    e.preventDefault();
+    if (!gameActive || draggedValue === null || currentTurn !== 'player' || aiMoveInProgress) return;
+
+    const target = e.target.closest('.cell');
+    if (!target) return;
+    
+    const r = parseInt(target.dataset.row);
+    const c = parseInt(target.dataset.col);
+
+    // Prevent placing on labels or occupied slots
+    if (r === 0 || r === 14 || c === 0 || c === 14 || board[r][c] !== null) return;
+
+    // Animate placement
+    target.classList.add('selection-pulse');
+    setTimeout(() => target.classList.remove('selection-pulse'), 500);
+
+    board[r][c] = `player_${draggedValue}`;
+    placedThisTurn.push({row: r, col: c, value: draggedValue, fromRack: draggedIndex !== null});
+
+    if (draggedIndex !== null) {
+        player.rack.splice(draggedIndex, 1);
+    }
+
+    draggedValue = null;
+    draggedIndex = null;
+    
+    // Mark that player has acted
+    playerHasActed = true;
+    
+    renderBoard();
+    renderRack();
+    
+    // Update submit button state
+    document.getElementById('submitBtn').disabled = false;
+}
+
 function undoMove() {
     if (placedThisTurn.length === 0 || currentTurn !== 'player' || aiMoveInProgress) return;
     
@@ -1660,16 +1600,6 @@ function undoMove() {
             player.rack.push(last.value);
         }
     }
-    
-    // Clear selection
-    draggedValue = null;
-    draggedIndex = null;
-    document.querySelectorAll('.tile.selected').forEach(t => {
-        t.classList.remove('selected');
-        t.style.transform = '';
-    });
-    document.querySelectorAll('.cell.preview').forEach(c => c.classList.remove('preview'));
-    
     renderBoard();
     renderRack();
     addLogEntry("Player undid last move", "system");
@@ -1758,8 +1688,6 @@ function newGame() {
     aiMoveInProgress = false;
     playerHasActed = false;
     gameStartTime = new Date();
-    draggedValue = null;
-    draggedIndex = null;
     
     // Reinitialize
     createBoard();
@@ -2036,70 +1964,6 @@ function checkGameOver() {
         }
     }
 }
-
-// Add CSS for touch interactions
-const style = document.createElement('style');
-style.textContent = `
-    .cell.preview {
-        background: rgba(102, 126, 234, 0.3) !important;
-        border: 2px dashed #667eea !important;
-        animation: previewPulse 1s infinite;
-    }
-    
-    @keyframes previewPulse {
-        0%, 100% { opacity: 0.7; }
-        50% { opacity: 0.3; }
-    }
-    
-    .tile {
-        cursor: pointer;
-        -webkit-tap-highlight-color: transparent;
-        user-select: none;
-        -webkit-user-select: none;
-    }
-    
-    .tile.selected {
-        transform: scale(1.1) !important;
-        box-shadow: 0 0 0 3px #667eea, 0 4px 0 #d4c88e !important;
-        z-index: 1000;
-        position: relative;
-    }
-    
-    .tile:active {
-        transform: scale(0.95);
-    }
-    
-    /* Improve touch targets on mobile */
-    @media (max-width: 600px) {
-        .tile {
-            min-width: 44px;
-            min-height: 54px;
-            font-size: 24px;
-        }
-        
-        .cell {
-            min-height: 44px;
-            min-width: 44px;
-        }
-        
-        .operator-tile {
-            min-width: 44px;
-            min-height: 54px;
-        }
-        
-        button {
-            min-height: 44px;
-        }
-    }
-    
-    /* Prevent text selection during gameplay */
-    .game-container {
-        -webkit-touch-callout: none;
-        -webkit-user-select: none;
-        user-select: none;
-    }
-`;
-document.head.appendChild(style);
 </script>
 </body>
 </html>
