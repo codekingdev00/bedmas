@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>Bedmas Pro · Tabbed edition</title>
+<title>Bedmas Pro · Responsive board</title>
 <style>
     /* ===== BASE & LAYOUT (same robust style, adapted for tabs) ===== */
     * {
@@ -169,25 +169,78 @@
     .thinking-dots span:nth-child(3) { animation-delay:0.4s; }
     @keyframes thinking { 0%,60%,100%{transform:scale(1); opacity:0.5} 30%{transform:scale(1.5); opacity:1} }
 
-    /* board */
+    /* ===== FULLY RESPONSIVE BOARD ===== */
+    /* board wrapper for better scaling control */
+    .board-wrapper {
+        width: 100%;
+        display: flex;
+        justify-content: center;
+        margin: 10px 0;
+    }
+    
     #board {
-        display: grid; grid-template-columns:repeat(15,1fr); grid-template-rows:repeat(15,1fr);
-        width:100%; aspect-ratio:1; background:#ffffff; border-radius:clamp(10px,3vw,20px);
-        overflow:hidden; box-shadow:0 10px 30px rgba(0,0,0,0.2); border:2px solid #fff; margin-bottom:10px;
+        display: grid;
+        grid-template-columns: repeat(15, 1fr);
+        grid-template-rows: repeat(15, 1fr);
+        background: #ffffff;
+        border-radius: clamp(8px, 2vw, 16px);
+        overflow: hidden;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        border: 2px solid #fff;
+        /* dynamic size: on small screens use min(70vw, 70vh) to ensure full board visible */
+        width: min(75vw, 75vh, 650px);
+        height: min(75vw, 75vh, 650px);
+        max-width: 100%;
+        aspect-ratio: 1 / 1;
+        margin: 0 auto;
     }
 
-    .cell { border:1px solid rgba(102,126,234,0.2); display:flex; justify-content:center; align-items:center; font-size:clamp(8px,2vw,14px); font-weight:600; transition:all 0.2s; background:white; color:#333; aspect-ratio:1; padding:2px; word-break:break-word; text-align:center; }
+    /* cell typography scales with board */
+    .cell {
+        border: 1px solid rgba(102,126,234,0.2);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-size: clamp(8px, 2.5vw, 16px);
+        font-weight: 600;
+        transition: all 0.2s;
+        background: white;
+        color: #333;
+        aspect-ratio: 1;
+        padding: 0;
+        word-break: break-word;
+        text-align: center;
+        line-height: 1;
+    }
+    
+    /* for very small screens, even smaller base font but still readable */
+    @media (max-width: 480px) {
+        #board {
+            width: min(85vw, 85vh);
+            height: min(85vw, 85vh);
+        }
+        .cell {
+            font-size: clamp(7px, 2.2vw, 12px);
+        }
+    }
+    
+    @media (max-width: 360px) {
+        .cell {
+            font-size: clamp(6px, 2vw, 10px);
+        }
+    }
+
     .cell.player-turn-highlight { box-shadow:inset 0 0 0 2px #667eea; }
     .cell.ai-turn-highlight { box-shadow:inset 0 0 0 2px #764ba2; }
     .cell.valid-move { background:linear-gradient(135deg,#a8ede0,#fed6e3); transform:scale(0.95); border-radius:4px; cursor:pointer; animation:pulse 1.5s infinite; }
-    .cell.placed-tile { background:#fdf2b3 !important; color:#333 !important; font-size:clamp(12px,3vw,22px) !important; font-weight:900; border:1px solid #d4c88e; box-shadow:inset 0 -2px 0 rgba(0,0,0,0.2); }
+    .cell.placed-tile { background:#fdf2b3 !important; color:#333 !important; font-size: clamp(10px, 3vw, 20px) !important; font-weight:900; border:1px solid #d4c88e; box-shadow:inset 0 -2px 0 rgba(0,0,0,0.2); }
     .cell.placed-tile.player-tile { background:linear-gradient(135deg,#fdf2b3,#fbbf24) !important; border-left:3px solid #667eea; }
     .cell.placed-tile.ai-tile { background:linear-gradient(135deg,#e9d8fd,#9f7aea) !important; border-left:3px solid #764ba2; animation:aiPlace 0.5s; }
     @keyframes aiPlace { 0%{transform:scale(0); opacity:0} 50%{transform:scale(1.2)} 100%{transform:scale(1); opacity:1} }
-    .cell.board-label { background:#1a1f2c; color:#fbbf24; font-size:clamp(10px,2.5vw,16px); }
+    .cell.board-label { background:#1a1f2c; color:#fbbf24; font-size: clamp(8px, 2.2vw, 14px); }
     .cell.empty-even { background:#2d3446; color:rgba(255,255,255,0.5); }
     .cell.empty-odd { background:#374151; color:rgba(255,255,255,0.5); }
-    .star { font-size:clamp(12px,3vw,24px); color:#fbbf24; text-shadow:0 0 5px rgba(251,191,36,0.5); }
+    .star { font-size: clamp(10px, 3vw, 22px); color:#fbbf24; text-shadow:0 0 5px rgba(251,191,36,0.5); }
     .cell.plus-mod { background:#dcfce7 !important; color:#166534 !important; }
     .cell.minus-mod { background:#fee2e2 !important; color:#991b1b !important; }
 
@@ -221,7 +274,7 @@
     #log { max-height:180px; overflow-y:auto; background:white; border-radius:15px; padding:10px; }
     .log-entry { padding:8px 12px; margin:5px 0; border-radius:10px; }
 
-    /* mobile etc (original intact) */
+    /* mobile etc */
     @media (max-width:600px) { .tab { padding:8px 16px; font-size:0.9rem; } }
 </style>
 </head>
@@ -262,7 +315,10 @@
     <!-- ===== PANEL: GAME (board, racks, main controls) ===== -->
     <div id="panel-game" class="tab-panel active-panel">
         <div class="panel-header">⏳ Current board & your tiles</div>
-        <div id="board"></div>
+        <!-- board wrapper for perfect centering and scaling -->
+        <div class="board-wrapper">
+            <div id="board"></div>
+        </div>
         <h3>🔢 Your Numbers</h3>
         <div id="rack" class="rack player-turn"></div>
         <h3>🎯 Operators</h3>
