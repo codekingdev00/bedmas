@@ -3,14 +3,16 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>Bedmas Pro · Responsive board</title>
+<title>Bedmas Pro · Fixed Drag & Drop</title>
 <style>
-    /* ===== BASE & LAYOUT (same robust style, adapted for tabs) ===== */
+    /* ===== BASE & LAYOUT (same robust style) ===== */
     * {
         margin: 0;
         padding: 0;
         box-sizing: border-box;
         font-family: 'Segoe UI', Roboto, system-ui, sans-serif;
+        -webkit-tap-highlight-color: transparent;
+        user-select: none;
     }
 
     body {
@@ -80,7 +82,7 @@
         box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
     }
 
-    /* tab content panels – initially hidden, shown via JS */
+    /* tab content panels */
     .tab-panel {
         display: none;
         opacity: 0;
@@ -92,7 +94,6 @@
         opacity: 1;
     }
 
-    /* headers inside panels */
     .panel-header {
         display: flex;
         align-items: center;
@@ -105,7 +106,6 @@
         padding-bottom: 6px;
     }
 
-    /* ===== rest is identical to original, but we organise panels ===== */
     .game-header {
         display: flex;
         justify-content: space-between;
@@ -170,7 +170,6 @@
     @keyframes thinking { 0%,60%,100%{transform:scale(1); opacity:0.5} 30%{transform:scale(1.5); opacity:1} }
 
     /* ===== FULLY RESPONSIVE BOARD ===== */
-    /* board wrapper for better scaling control */
     .board-wrapper {
         width: 100%;
         display: flex;
@@ -187,7 +186,6 @@
         overflow: hidden;
         box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
         border: 2px solid #fff;
-        /* dynamic size: on small screens use min(70vw, 70vh) to ensure full board visible */
         width: min(75vw, 75vh, 650px);
         height: min(75vw, 75vh, 650px);
         max-width: 100%;
@@ -195,7 +193,6 @@
         margin: 0 auto;
     }
 
-    /* cell typography scales with board */
     .cell {
         border: 1px solid rgba(102,126,234,0.2);
         display: flex;
@@ -211,9 +208,9 @@
         word-break: break-word;
         text-align: center;
         line-height: 1;
+        cursor: pointer;
     }
     
-    /* for very small screens, even smaller base font but still readable */
     @media (max-width: 480px) {
         #board {
             width: min(85vw, 85vh);
@@ -244,21 +241,66 @@
     .cell.plus-mod { background:#dcfce7 !important; color:#166534 !important; }
     .cell.minus-mod { background:#fee2e2 !important; color:#991b1b !important; }
 
+    /* ===== FIXED DRAG & DROP WITH TOUCH SUPPORT ===== */
     .rack {
-        display: flex; justify-content: center; flex-wrap: wrap; gap:clamp(4px,2vw,8px);
-        padding:clamp(10px,3vw,15px); background:#f8f9fa; border-radius:clamp(30px,8vw,50px);
-        margin:10px 0; min-height:clamp(60px,15vw,80px); box-shadow:inset 0 2px 5px rgba(0,0,0,0.05);
+        display: flex;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: clamp(4px, 2vw, 8px);
+        padding: clamp(10px, 3vw, 15px);
+        background: #f8f9fa;
+        border-radius: clamp(30px, 8vw, 50px);
+        margin: 10px 0;
+        min-height: clamp(60px, 15vw, 80px);
+        box-shadow: inset 0 2px 5px rgba(0,0,0,0.05);
+        touch-action: pan-y pinch-zoom; /* Allow vertical scrolling, disable pan-x to prevent interference */
     }
+    
     .rack.player-turn { box-shadow:0 0 0 3px #667eea, inset 0 2px 5px rgba(0,0,0,0.05); }
     .rack.ai-turn { box-shadow:0 0 0 3px #764ba2, inset 0 2px 5px rgba(0,0,0,0.05); opacity:0.7; }
 
     .tile {
-        width:clamp(35px,10vw,50px); height:clamp(45px,12vw,60px); background:#fdf2b3; border-radius:6px;
-        display:flex; justify-content:center; align-items:center; font-size:clamp(18px,5vw,28px); font-weight:900;
-        color:#333; box-shadow:0 4px 0 #d4c88e, 0 6px 10px rgba(0,0,0,0.3); cursor:grab; user-select:none;
+        width: clamp(35px, 10vw, 50px);
+        height: clamp(45px, 12vw, 60px);
+        background: #fdf2b3;
+        border-radius: 6px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-size: clamp(18px, 5vw, 28px);
+        font-weight: 900;
+        color: #333;
+        box-shadow: 0 4px 0 #d4c88e, 0 6px 10px rgba(0,0,0,0.3);
+        cursor: pointer;
+        user-select: none;
+        transition: transform 0.1s ease, box-shadow 0.2s ease;
+        touch-action: none; /* Prevent browser touch actions while dragging */
+        -webkit-touch-callout: none;
     }
-    .tile[draggable="true"]:hover { transform:translateY(-3px); box-shadow:0 8px 20px rgba(102,126,234,0.4); }
+    
+    .tile.dragging {
+        opacity: 0.8;
+        transform: scale(1.1) translateY(-5px);
+        box-shadow: 0 8px 20px rgba(102,126,234,0.5), 0 4px 0 #d4c88e;
+        z-index: 1000;
+        position: relative;
+    }
+    
+    .tile.selected {
+        transform: scale(1.1);
+        box-shadow: 0 0 0 3px #667eea, 0 4px 0 #d4c88e;
+        z-index: 10;
+    }
+    
     .operator-tile { background:#3b82f6 !important; color:white !important; box-shadow:0 4px 0 #1d4ed8; }
+    .operator-tile.selected { box-shadow:0 0 0 3px #667eea, 0 4px 0 #1d4ed8; }
+
+    /* Visual feedback for valid drop targets */
+    .cell.valid-drop-target {
+        background: rgba(102, 126, 234, 0.2) !important;
+        transform: scale(0.98);
+        border: 2px solid #667eea;
+    }
 
     .history-container { background:linear-gradient(135deg,#667eea 0%,#764ba2 100%); border-radius:20px; padding:15px; margin:20px 0; color:white; }
     .history-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; flex-wrap:wrap; }
@@ -274,18 +316,17 @@
     #log { max-height:180px; overflow-y:auto; background:white; border-radius:15px; padding:10px; }
     .log-entry { padding:8px 12px; margin:5px 0; border-radius:10px; }
 
-    /* mobile etc */
     @media (max-width:600px) { .tab { padding:8px 16px; font-size:0.9rem; } }
 </style>
 </head>
 <body>
 <div class="game-container">
     <div class="game-header">
-        <h2>BEDMAS PRO · TABS</h2>
+        <h2>BEDMAS PRO · FIXED DRAG</h2>
         <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='45' fill='%23667eea'/%3E%3Ctext x='50' y='70' font-size='50' text-anchor='middle' fill='white' font-weight='bold'%3E∑%3C/text%3E%3C/svg%3E" style="width: 60px; height: 60px;" alt="Logo">
     </div>
 
-    <!-- ===== SCORE BAR (always visible) ===== -->
+    <!-- ===== SCORE BAR ===== -->
     <div class="score-bar">
         <div class="score-item"><div class="score-label">Player</div><div class="score-value" id="playerScore">0</div></div>
         <div class="score-item"><div class="score-label">AI</div><div class="score-value" id="aiScore">0</div></div>
@@ -293,14 +334,14 @@
         <div class="timer" id="timer">02:00</div>
     </div>
 
-    <!-- ===== TURN INDICATOR (always visible) ===== -->
+    <!-- ===== TURN INDICATOR ===== -->
     <div class="turn-indicator" id="turnIndicator">
         <div class="turn-badge player-turn" id="playerTurnBadge">👤 Your Turn</div>
         <div class="turn-badge ai-turn" id="aiTurnBadge">🤖 AI Turn</div>
         <div class="turn-progress" id="turnProgress" style="width:0%"></div>
     </div>
 
-    <!-- ===== AI THINKING (always visible placeholder) ===== -->
+    <!-- ===== AI THINKING ===== -->
     <div class="ai-thinking-container" id="aiThinkingContainer" style="display:none;">
         <div class="ai-thinking"><span>AI is thinking</span><div class="thinking-dots"><span></span><span></span><span></span></div></div>
     </div>
@@ -312,10 +353,9 @@
         <button class="tab" data-tab="stats">📊 STATS & LOG</button>
     </div>
 
-    <!-- ===== PANEL: GAME (board, racks, main controls) ===== -->
+    <!-- ===== PANEL: GAME ===== -->
     <div id="panel-game" class="tab-panel active-panel">
         <div class="panel-header">⏳ Current board & your tiles</div>
-        <!-- board wrapper for perfect centering and scaling -->
         <div class="board-wrapper">
             <div id="board"></div>
         </div>
@@ -323,7 +363,6 @@
         <div id="rack" class="rack player-turn"></div>
         <h3>🎯 Operators</h3>
         <div id="operatorRack" class="rack player-turn"></div>
-        <!-- minimal controls inside game panel, full set also in stats but we keep main here -->
         <div class="controls" style="margin-top:10px;">
             <button onclick="submitMove()" id="submitBtn">✓ Submit</button>
             <button onclick="undoMove()" id="undoBtn">↩ Undo</button>
@@ -332,7 +371,7 @@
         </div>
     </div>
 
-    <!-- ===== PANEL: HISTORY (game history + clear) ===== -->
+    <!-- ===== PANEL: HISTORY ===== -->
     <div id="panel-history" class="tab-panel">
         <div class="panel-header">📋 previous matches</div>
         <div class="history-container" style="margin-top:0;">
@@ -347,28 +386,24 @@
             </div>
             <div class="history-list" id="gameHistory"></div>
         </div>
-        <!-- optional quick new game from history -->
         <div style="text-align:center; margin:15px 0;">
             <button onclick="newGame()" class="new-game-btn" style="padding:10px 30px;">🔄 New Game</button>
         </div>
     </div>
 
-    <!-- ===== PANEL: STATS & MOVE LOG + difficulty ===== -->
+    <!-- ===== PANEL: STATS & LOG ===== -->
     <div id="panel-stats" class="tab-panel">
         <div class="panel-header">📝 move log & settings</div>
-        <!-- difficulty & new game row -->
         <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin:10px 0;">
             <select id="difficulty" onchange="setDifficulty(this.value)">
                 <option value="easy">Easy</option> <option value="medium" selected>Medium</option> <option value="hard">Hard</option>
             </select>
             <button onclick="newGame()" class="new-game-btn">🔄 New Game</button>
         </div>
-        <!-- log panel -->
         <div class="log-container">
             <h3 style="margin-top:0;">📝 Move Log</h3>
             <div id="log"></div>
         </div>
-        <!-- extra stats summary -->
         <div style="background:#f0f3ff; border-radius:20px; padding:15px; margin:15px 0; display:flex; justify-content:space-around;">
             <div><strong>Player score</strong> <span id="playerScore2">0</span></div>
             <div><strong>AI score</strong> <span id="aiScore2">0</span></div>
@@ -376,12 +411,11 @@
         </div>
     </div>
 
-    <!-- hidden turn message placeholder (used by js) -->
     <div id="turnMessage" class="turn-message" style="display:none;"></div>
 </div>
 
 <script>
-// ==================== ORIGINAL ENGINE (fully preserved, minor adjustments for panels) ====================
+// ==================== BEDMAS ENGINE WITH FIXED TOUCH DRAG & DROP ====================
 const BOARD_SIZE = 15;
 const RACK_SIZE = 7;
 const TARGET_SCORE = 500;
@@ -394,8 +428,7 @@ let player = { score: 0, rack: [] };
 let ai = { score: 0, rack: [] };
 
 let placedThisTurn = [];
-let draggedValue = null;
-let draggedIndex = null;
+let draggedTile = null; // Object { element, value, fromRack, index }
 let currentDifficulty = 'medium';
 let currentTurn = 'player';
 let aiMoveInProgress = false;
@@ -408,19 +441,38 @@ let gameStartTime = null;
 let playerHasActed = false;
 let gameHistory = [];
 
+// Touch tracking
+let touchActive = false;
+let longPressTimer = null;
+
 window.onload = function() {
     loadGameHistory();
     init();
-    setupTabs();   // <-- new tab system
-    syncPanelScores(); 
+    setupTabs();
+    syncPanelScores();
+    setupGlobalTouchHandling();
 };
+
+function setupGlobalTouchHandling() {
+    // Prevent default touch behaviors during drag
+    document.addEventListener('touchmove', (e) => {
+        if (draggedTile) {
+            e.preventDefault();
+        }
+    }, { passive: false });
+    
+    document.addEventListener('touchend', (e) => {
+        if (draggedTile) {
+            handleTouchEnd(e);
+        }
+    });
+}
 
 function setupTabs() {
     const tabs = document.querySelectorAll('.tab');
     tabs.forEach(tab => {
         tab.addEventListener('click', () => {
             const targetId = 'panel-' + tab.dataset.tab;
-            // deactivate all
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
             document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active-panel'));
             tab.classList.add('active');
@@ -429,7 +481,6 @@ function setupTabs() {
     });
 }
 
-// sync extra score displays
 function syncPanelScores() {
     const p2 = document.getElementById('playerScore2');
     const a2 = document.getElementById('aiScore2');
@@ -456,7 +507,6 @@ function init() {
     setupTurnDetection();
 }
 
-/* history & localstorage identical */
 function loadGameHistory() {
     const saved = localStorage.getItem('bedmasGameHistory');
     if (saved) { try { gameHistory = JSON.parse(saved); } catch(e) { gameHistory = []; } }
@@ -518,7 +568,7 @@ function addLogEntry(msg,type='player') {
     moveLog.push({ts,msg,type});
 }
 function updateTurnUI() {
-    document.querySelectorAll('.tile').forEach(t=> t.draggable = gameActive && currentTurn==='player' && !aiMoveInProgress);
+    // No draggable attribute needed - we use custom touch/click
     document.getElementById('submitBtn').disabled = (currentTurn!=='player'||aiMoveInProgress||placedThisTurn.length===0);
     document.getElementById('undoBtn').disabled = (currentTurn!=='player'||aiMoveInProgress||placedThisTurn.length===0);
     document.getElementById('swapBtn').disabled = (currentTurn!=='player'||aiMoveInProgress);
@@ -545,16 +595,27 @@ function renderBoard() {
             else { cell.textContent = val; cell.classList.add('placed-tile'); }
         }
         cell.classList.add(currentTurn==='player'?'player-turn-highlight':'ai-turn-highlight');
-        cell.ondragover = e=>e.preventDefault(); cell.ondrop = dropTile;
+        
+        // Handle drop for both mouse and touch
+        cell.addEventListener('click', (e) => handleCellClick(e));
+        cell.addEventListener('touchend', (e) => handleCellTouchEnd(e));
+        cell.addEventListener('mouseup', (e) => handleCellMouseUp(e));
+        
         el.appendChild(cell);
     }
 }
 
 function applyCellPattern(cell,r,c) {
-    if(r===0||r===14||c===0||c===14) { const labels = ["B","(",")", "E","=","D","÷","M","×","A","+","S","-"]; let idx=(r===0||r===14)?c:r; if(idx>0&&idx<14) cell.textContent=labels[idx-1]; cell.classList.add('board-label'); return; }
+    if(r===0||r===14||c===0||c===14) { 
+        const labels = ["B","(",")", "E","=","D","÷","M","×","A","+","S","-"]; 
+        let idx=(r===0||r===14)?c:r; 
+        if(idx>0&&idx<14) cell.textContent=labels[idx-1]; 
+        cell.classList.add('board-label'); 
+        return; 
+    }
     cell.classList.add(r%2===0?'empty-even':'empty-odd');
     if([[7,7],[3,3],[3,11],[11,3],[11,11]].some(p=>p[0]===r&&p[1]===c)) { cell.innerHTML='★'; cell.classList.add('star'); return; }
-    // multipliers abbreviated for space
+    // multipliers
     if((r===1||r===13)&&(c===4||c===10)) { cell.textContent="+2"; cell.classList.add("plus-mod"); }
     else if((r===4||r===10)&&(c===1||c===13)) { cell.textContent="+3"; cell.classList.add("plus-mod"); }
     else if((r===2||r===12)&&(c===2||c===12)) { cell.textContent="+4"; cell.classList.add("plus-mod"); }
@@ -571,63 +632,441 @@ function applyCellPattern(cell,r,c) {
 
 function renderRack() {
     let el = document.getElementById("rack"); if(!el) return; el.innerHTML="";
-    player.rack.forEach((tile,i)=>{
-        let t = document.createElement("div"); t.className="tile"; t.textContent=tile; t.draggable=gameActive && currentTurn==='player'&&!aiMoveInProgress;
-        t.ondragstart = e=> { if(currentTurn==='player'&&!aiMoveInProgress) { draggedValue=tile; draggedIndex=i; t.classList.add('selected'); playerHasActed=true; } else e.preventDefault(); };
-        t.ondragend = ()=> t.classList.remove('selected');
-        t.ontouchstart = e=> { e.preventDefault(); if(currentTurn==='player'&&!aiMoveInProgress) { draggedValue=tile; draggedIndex=i; t.classList.add('selected'); playerHasActed=true; } };
-        t.ontouchend = ()=> t.classList.remove('selected');
+    player.rack.forEach((tile, i)=>{
+        let t = createTileElement(tile, i, true);
         el.appendChild(t);
     });
 }
+
 function renderOperators() {
     let el = document.getElementById("operatorRack"); if(!el) return; el.innerHTML="";
-    OPERATORS.forEach(op=>{
-        let t = document.createElement("div"); t.className="tile operator-tile"; t.textContent=op;
-        t.draggable = gameActive && currentTurn==='player'&&!aiMoveInProgress;
-        t.ondragstart = e=> { if(currentTurn==='player'&&!aiMoveInProgress) { draggedValue=op; draggedIndex=null; t.classList.add('selected'); playerHasActed=true; } else e.preventDefault(); };
-        t.ondragend = ()=> t.classList.remove('selected');
-        t.ontouchstart = e=> { e.preventDefault(); if(currentTurn==='player'&&!aiMoveInProgress) { draggedValue=op; draggedIndex=null; t.classList.add('selected'); playerHasActed=true; } };
-        t.ontouchend = ()=> t.classList.remove('selected');
+    OPERATORS.forEach((op, i)=>{
+        let t = createTileElement(op, i, false);
+        t.classList.add('operator-tile');
         el.appendChild(t);
     });
 }
 
-function dropTile(e) {
-    e.preventDefault(); if(!gameActive||draggedValue===null||currentTurn!=='player'||aiMoveInProgress) return;
-    const target = e.target.closest('.cell'); if(!target) return;
-    const r = parseInt(target.dataset.row), c = parseInt(target.dataset.col);
-    if(r===0||r===14||c===0||c===14||board[r][c]!==null) return;
-    target.classList.add('selection-pulse'); setTimeout(()=>target.classList.remove('selection-pulse'),500);
-    board[r][c] = `player_${draggedValue}`;
-    placedThisTurn.push({row:r,col:c,value:draggedValue,fromRack:draggedIndex!==null});
-    if(draggedIndex!==null) player.rack.splice(draggedIndex,1);
-    draggedValue=null; draggedIndex=null; playerHasActed=true;
-    renderBoard(); renderRack(); document.getElementById('submitBtn').disabled=false;
+function createTileElement(value, index, fromRack) {
+    let tile = document.createElement("div");
+    tile.className = "tile";
+    tile.textContent = value;
+    tile.dataset.value = value;
+    tile.dataset.index = index;
+    tile.dataset.fromRack = fromRack;
+    
+    // Touch events for mobile
+    tile.addEventListener('touchstart', (e) => handleTouchStart(e, tile, value, index, fromRack));
+    tile.addEventListener('touchmove', (e) => handleTouchMove(e));
+    tile.addEventListener('touchend', (e) => handleTouchEnd(e));
+    tile.addEventListener('touchcancel', (e) => handleTouchCancel(e));
+    
+    // Mouse events for desktop
+    tile.addEventListener('mousedown', (e) => handleMouseDown(e, tile, value, index, fromRack));
+    tile.addEventListener('mouseup', () => {});
+    tile.addEventListener('mouseleave', () => {
+        if (draggedTile && draggedTile.element === tile) {
+            // Cancel drag if mouse leaves tile while pressed
+            endDrag();
+        }
+    });
+    
+    return tile;
 }
 
-function undoMove() { if(placedThisTurn.length===0||currentTurn!=='player'||aiMoveInProgress) return; while(placedThisTurn.length) { let last=placedThisTurn.pop(); board[last.row][last.col]=null; if(last.fromRack) player.rack.push(last.value); } renderBoard(); renderRack(); document.getElementById('submitBtn').disabled=true; addLogEntry("Player undid last move","system"); }
-function submitMove() { if(!gameActive||placedThisTurn.length===0||currentTurn!=='player'||aiMoveInProgress) return; let sorted = [...placedThisTurn].sort((a,b)=>a.col-b.col||a.row-b.row); let eqArr = sorted.map(t=>t.value); if(!validateEquation(eqArr)) { alert("❌ Invalid BEDMAS Equation! (include '=')"); return; } let result = evaluateExpression(eqArr.join("").split("=")[0]); if(result!==null) { player.score+=Math.abs(result); addLogEntry(`Player equation: ${eqArr.join("")} = ${Math.abs(result)} (+${Math.abs(result)})`,"player"); placedThisTurn=[]; drawTiles(player); updateUI(); renderBoard(); renderRack(); playerHasActed=true; setTimeout(()=>endTurn(),500); } }
-function swapMode() { if(!gameActive||player.rack.length===0||currentTurn!=='player'||aiMoveInProgress) return; let removed = player.rack.pop(); bag.push(removed); shuffle(bag); drawTiles(player); addLogEntry(`Player swapped tile ${removed}`,"player"); renderRack(); updateUI(); playerHasActed=true; setTimeout(()=>endTurn(),500); }
-function setDifficulty(level) { currentDifficulty=level; addLogEntry(`Difficulty set to ${level}`,"system"); }
-function newGame() { if(!confirm('Start a new game?')) return; gameActive=true; player={score:0,rack:[]}; ai={score:0,rack:[]}; board=[]; bag=[]; placedThisTurn=[]; moveLog=[]; timeLeft=120; currentTurn='player'; aiMoveInProgress=false; playerHasActed=false; gameStartTime=new Date(); createBoard(); generateBag(); drawTiles(player); drawTiles(ai); renderBoard(); renderRack(); renderOperators(); updateUI(); updateTurnIndicator(); updateTurnUI(); document.getElementById('log').innerHTML=''; addLogEntry("New game started!","system"); }
+// ===== DRAG AND DROP HANDLERS =====
+function handleTouchStart(e, tile, value, index, fromRack) {
+    e.preventDefault();
+    if (currentTurn !== 'player' || aiMoveInProgress || !gameActive) return;
+    
+    // Clear any existing long press timer
+    if (longPressTimer) clearTimeout(longPressTimer);
+    
+    // Start drag immediately for better responsiveness
+    startDrag(tile, value, index, fromRack);
+    
+    // Mark that player has acted
+    playerHasActed = true;
+}
 
-function validateEquation(arr) { let str = arr.join(""); if(!str.includes("=")) return false; let parts = str.split("="); if(parts.length!==2 || parts[0]===""||parts[1]==="") return false; let left = evaluateExpression(parts[0]), right = evaluateExpression(parts[1]); return left!==null && right!==null && Math.abs(left-right)<0.01; }
-function evaluateExpression(expr) { try { let clean = expr.replace(/×/g,"*").replace(/÷/g,"/"); return Function(`"use strict"; return (${clean})`)(); } catch(e){ return null; } }
-function timeUp() { gameActive=false; addLogEntry("⏰ Time's up! Game over.","system"); alert("⏰ Time's up!"); if(player.score>ai.score) addGameToHistory('win',player.score,ai.score); else if(ai.score>player.score) addGameToHistory('loss',player.score,ai.score); else addGameToHistory('draw',player.score,ai.score); if(confirm("Time's up! New game?")) newGame(); }
-function endTurn() { if(currentTurn!=='player'||aiMoveInProgress||!gameActive) return; if(turnTimeout) clearTimeout(turnTimeout); if(placedThisTurn.length>0) { if(confirm("Unsubmitted tiles. Auto-submit?")) { submitMove(); return; } else undoMove(); } addLogEntry(playerHasActed?"Player ended turn":"Player passed turn","system"); switchToAITurn(); }
-function switchToAITurn() { currentTurn='ai'; aiMoveInProgress=true; updateTurnIndicator(); updateTurnUI(); renderBoard(); renderRack(); renderOperators(); document.getElementById('aiThinkingContainer').style.display='flex'; setTimeout(()=>aiTurn(),800); }
-function switchToPlayerTurn() { currentTurn='player'; aiMoveInProgress=false; playerHasActed=false; updateTurnIndicator(); updateTurnUI(); renderBoard(); renderRack(); renderOperators(); document.getElementById('aiThinkingContainer').style.display='none'; addLogEntry("Your turn!","system"); }
+function handleTouchMove(e) {
+    e.preventDefault();
+    if (!draggedTile) return;
+    
+    // Visual feedback - can add floating indicator here if desired
+}
 
-async function aiTurn() { if(!gameActive||currentTurn!=='ai') return; await new Promise(r=>setTimeout(r,currentDifficulty==='easy'?1500:currentDifficulty==='medium'?2500:3500)); let aiMove = currentDifficulty==='easy'?getEasyAIMove():currentDifficulty==='medium'?getMediumAIMove():getHardAIMove(); if(aiMove) await executeAIMove(aiMove); else { addLogEntry("AI passes","ai"); await new Promise(r=>setTimeout(r,1000)); } switchToPlayerTurn(); checkGameOver(); }
-function getEasyAIMove() { if(ai.rack.length===0) return null; let empty=[]; for(let r=1;r<14;r++) for(let c=1;c<14;c++) if(board[r][c]===null) empty.push({row:r,col:c}); if(empty.length===0) return null; let idx=Math.floor(Math.random()*ai.rack.length); let cell=empty[Math.floor(Math.random()*empty.length)]; return {type:'number',value:ai.rack[idx],index:idx,row:cell.row,col:cell.col}; }
-function getMediumAIMove() { return getEasyAIMove(); } // simplified
-function getHardAIMove() { return getMediumAIMove(); }
-async function executeAIMove(move) { if(move.type==='number') { let rackEl = document.getElementById('rack'); if(rackEl.children[move.index]) { rackEl.children[move.index].classList.add('ai-selected'); await new Promise(r=>setTimeout(r,500)); rackEl.children[move.index].classList.remove('ai-selected'); } let cell = document.querySelector(`[data-row="${move.row}"][data-col="${move.col}"]`); if(cell) { cell.classList.add('highlight-ai'); board[move.row][move.col] = `ai_${move.value}`; ai.rack.splice(move.index,1); addLogEntry(`AI places ${move.value} at (${move.row},${move.col})`,"ai"); ai.score += move.value; addLogEntry(`AI gains ${move.value} points`,"ai"); renderBoard(); await new Promise(r=>setTimeout(r,800)); } } drawTiles(ai); updateUI(); }
-function checkGameOver() { if(player.score>=TARGET_SCORE) { gameActive=false; addLogEntry("🏆 Player wins!","system"); addGameToHistory('win',player.score,ai.score); alert("🏆 You Win!"); if(confirm('Play again?')) newGame(); } else if(ai.score>=TARGET_SCORE) { gameActive=false; addLogEntry("🤖 AI wins!","system"); addGameToHistory('loss',player.score,ai.score); alert("🤖 AI Wins!"); if(confirm('Play again?')) newGame(); } }
+function handleTouchEnd(e) {
+    if (!draggedTile) return;
+    
+    e.preventDefault();
+    const touch = e.changedTouches[0];
+    if (!touch) {
+        endDrag();
+        return;
+    }
+    
+    // Find the element under the touch point
+    const elementAtTouch = document.elementFromPoint(touch.clientX, touch.clientY);
+    const cell = elementAtTouch?.closest('.cell');
+    
+    if (cell) {
+        attemptPlaceOnCell(cell);
+    } else {
+        // Dropped outside board - cancel drag
+        endDrag();
+    }
+}
 
-// patch for window methods
-window.submitMove = submitMove; window.undoMove = undoMove; window.swapMode = swapMode; window.endTurn = endTurn; window.setDifficulty = setDifficulty; window.newGame = newGame; window.clearGameHistory = clearGameHistory;
+function handleTouchCancel(e) {
+    e.preventDefault();
+    endDrag();
+}
+
+function handleMouseDown(e, tile, value, index, fromRack) {
+    e.preventDefault();
+    if (currentTurn !== 'player' || aiMoveInProgress || !gameActive) return;
+    
+    startDrag(tile, value, index, fromRack);
+    playerHasActed = true;
+}
+
+function handleCellMouseUp(e) {
+    if (draggedTile) {
+        attemptPlaceOnCell(e.currentTarget);
+    }
+}
+
+function handleCellClick(e) {
+    // For mouse clicks without drag
+    if (!draggedTile && currentTurn === 'player' && !aiMoveInProgress && gameActive) {
+        // Click handling could be implemented here if desired
+    }
+}
+
+function handleCellTouchEnd(e) {
+    e.preventDefault();
+    if (draggedTile) {
+        attemptPlaceOnCell(e.currentTarget);
+    }
+}
+
+function startDrag(tile, value, index, fromRack) {
+    // End any existing drag
+    if (draggedTile) {
+        draggedTile.element.classList.remove('dragging', 'selected');
+    }
+    
+    draggedTile = {
+        element: tile,
+        value: value,
+        index: index,
+        fromRack: fromRack
+    };
+    
+    tile.classList.add('dragging', 'selected');
+    
+    // Disable text selection and scrolling during drag
+    document.body.style.overflow = 'hidden';
+}
+
+function attemptPlaceOnCell(cell) {
+    if (!draggedTile) return;
+    
+    const r = parseInt(cell.dataset.row);
+    const c = parseInt(cell.dataset.col);
+    
+    // Check if placement is valid
+    if (r === 0 || r === 14 || c === 0 || c === 14 || board[r][c] !== null) {
+        // Invalid placement
+        endDrag();
+        return;
+    }
+    
+    // Valid placement
+    board[r][c] = `player_${draggedTile.value}`;
+    placedThisTurn.push({
+        row: r,
+        col: c,
+        value: draggedTile.value,
+        fromRack: draggedTile.fromRack
+    });
+    
+    // Remove from rack if it came from rack
+    if (draggedTile.fromRack) {
+        player.rack.splice(draggedTile.index, 1);
+    }
+    
+    // Animate placement
+    cell.classList.add('selection-pulse');
+    setTimeout(() => cell.classList.remove('selection-pulse'), 500);
+    
+    // End drag and refresh UI
+    endDrag();
+    
+    renderBoard();
+    renderRack();
+    renderOperators();
+    
+    // Update submit button state
+    document.getElementById('submitBtn').disabled = false;
+}
+
+function endDrag() {
+    if (draggedTile) {
+        draggedTile.element.classList.remove('dragging', 'selected');
+        draggedTile = null;
+    }
+    
+    // Re-enable scrolling
+    document.body.style.overflow = '';
+    
+    // Clear any long press timer
+    if (longPressTimer) {
+        clearTimeout(longPressTimer);
+        longPressTimer = null;
+    }
+}
+
+// ===== GAME ACTIONS =====
+function submitMove() {
+    if (!gameActive || placedThisTurn.length === 0 || currentTurn !== 'player' || aiMoveInProgress) return;
+    
+    let sorted = [...placedThisTurn].sort((a,b) => a.col - b.col || a.row - b.row);
+    let eqArr = sorted.map(t => t.value);
+    
+    if (!validateEquation(eqArr)) {
+        alert("❌ Invalid BEDMAS Equation! (include '=')");
+        return;
+    }
+    
+    let result = evaluateExpression(eqArr.join("").split("=")[0]);
+    if (result !== null) {
+        player.score += Math.abs(result);
+        addLogEntry(`Player equation: ${eqArr.join("")} = ${Math.abs(result)} (+${Math.abs(result)})`, "player");
+        placedThisTurn = [];
+        drawTiles(player);
+        updateUI();
+        renderBoard();
+        renderRack();
+        renderOperators();
+        playerHasActed = true;
+        setTimeout(() => endTurn(), 500);
+    }
+}
+
+function undoMove() {
+    if (placedThisTurn.length === 0 || currentTurn !== 'player' || aiMoveInProgress) return;
+    
+    while (placedThisTurn.length > 0) {
+        let last = placedThisTurn.pop();
+        board[last.row][last.col] = null;
+        if (last.fromRack) {
+            player.rack.push(last.value);
+        }
+    }
+    
+    renderBoard();
+    renderRack();
+    renderOperators();
+    document.getElementById('submitBtn').disabled = true;
+    addLogEntry("Player undid last move", "system");
+}
+
+function swapMode() {
+    if (!gameActive || player.rack.length === 0 || currentTurn !== 'player' || aiMoveInProgress) return;
+    
+    let removed = player.rack.pop();
+    bag.push(removed);
+    shuffle(bag);
+    drawTiles(player);
+    addLogEntry(`Player swapped tile ${removed}`, "player");
+    renderRack();
+    updateUI();
+    playerHasActed = true;
+    setTimeout(() => endTurn(), 500);
+}
+
+function endTurn() {
+    if (currentTurn !== 'player' || aiMoveInProgress || !gameActive) return;
+    
+    if (turnTimeout) clearTimeout(turnTimeout);
+    
+    if (placedThisTurn.length > 0) {
+        if (confirm("Unsubmitted tiles. Auto-submit?")) {
+            submitMove();
+            return;
+        } else {
+            undoMove();
+        }
+    }
+    
+    addLogEntry(playerHasActed ? "Player ended turn" : "Player passed turn", "system");
+    switchToAITurn();
+}
+
+function setDifficulty(level) {
+    currentDifficulty = level;
+    addLogEntry(`Difficulty set to ${level}`, "system");
+}
+
+function newGame() {
+    if (!confirm('Start a new game?')) return;
+    
+    gameActive = true;
+    player = { score: 0, rack: [] };
+    ai = { score: 0, rack: [] };
+    board = [];
+    bag = [];
+    placedThisTurn = [];
+    moveLog = [];
+    timeLeft = 120;
+    currentTurn = 'player';
+    aiMoveInProgress = false;
+    playerHasActed = false;
+    gameStartTime = new Date();
+    
+    endDrag(); // Clear any ongoing drag
+    
+    createBoard();
+    generateBag();
+    drawTiles(player);
+    drawTiles(ai);
+    renderBoard();
+    renderRack();
+    renderOperators();
+    updateUI();
+    updateTurnIndicator();
+    updateTurnUI();
+    
+    document.getElementById('log').innerHTML = '';
+    addLogEntry("New game started!", "system");
+}
+
+function validateEquation(arr) {
+    let str = arr.join("");
+    if (!str.includes("=")) return false;
+    let parts = str.split("=");
+    if (parts.length !== 2 || parts[0] === "" || parts[1] === "") return false;
+    let left = evaluateExpression(parts[0]), right = evaluateExpression(parts[1]);
+    return left !== null && right !== null && Math.abs(left - right) < 0.01;
+}
+
+function evaluateExpression(expr) {
+    try {
+        let clean = expr.replace(/×/g, "*").replace(/÷/g, "/");
+        return Function(`"use strict"; return (${clean})`)();
+    } catch(e) { 
+        return null; 
+    }
+}
+
+function timeUp() {
+    gameActive = false;
+    addLogEntry("⏰ Time's up! Game over.", "system");
+    alert("⏰ Time's up!");
+    
+    if (player.score > ai.score) addGameToHistory('win', player.score, ai.score);
+    else if (ai.score > player.score) addGameToHistory('loss', player.score, ai.score);
+    else addGameToHistory('draw', player.score, ai.score);
+    
+    if (confirm("Time's up! New game?")) newGame();
+}
+
+function switchToAITurn() {
+    currentTurn = 'ai';
+    aiMoveInProgress = true;
+    updateTurnIndicator();
+    updateTurnUI();
+    renderBoard();
+    renderRack();
+    renderOperators();
+    document.getElementById('aiThinkingContainer').style.display = 'flex';
+    setTimeout(() => aiTurn(), 800);
+}
+
+function switchToPlayerTurn() {
+    currentTurn = 'player';
+    aiMoveInProgress = false;
+    playerHasActed = false;
+    updateTurnIndicator();
+    updateTurnUI();
+    renderBoard();
+    renderRack();
+    renderOperators();
+    document.getElementById('aiThinkingContainer').style.display = 'none';
+    addLogEntry("Your turn!", "system");
+}
+
+// AI functions (simplified)
+async function aiTurn() {
+    if (!gameActive || currentTurn !== 'ai') return;
+    await new Promise(r => setTimeout(r, currentDifficulty === 'easy' ? 1500 : currentDifficulty === 'medium' ? 2500 : 3500));
+    
+    let aiMove = getEasyAIMove();
+    
+    if (aiMove) await executeAIMove(aiMove);
+    else { 
+        addLogEntry("AI passes", "ai"); 
+        await new Promise(r => setTimeout(r, 1000)); 
+    }
+    
+    switchToPlayerTurn();
+    checkGameOver();
+}
+
+function getEasyAIMove() {
+    if (ai.rack.length === 0) return null;
+    let empty = [];
+    for (let r = 1; r < 14; r++) for (let c = 1; c < 14; c++) if (board[r][c] === null) empty.push({row: r, col: c});
+    if (empty.length === 0) return null;
+    let idx = Math.floor(Math.random() * ai.rack.length);
+    let cell = empty[Math.floor(Math.random() * empty.length)];
+    return {type: 'number', value: ai.rack[idx], index: idx, row: cell.row, col: cell.col};
+}
+
+async function executeAIMove(move) {
+    if (move.type === 'number') {
+        let cell = document.querySelector(`[data-row="${move.row}"][data-col="${move.col}"]`);
+        if (cell) {
+            cell.classList.add('highlight-ai');
+            board[move.row][move.col] = `ai_${move.value}`;
+            ai.rack.splice(move.index, 1);
+            addLogEntry(`AI places ${move.value} at (${move.row},${move.col})`, "ai");
+            ai.score += move.value;
+            addLogEntry(`AI gains ${move.value} points`, "ai");
+            renderBoard();
+            await new Promise(r => setTimeout(r, 800));
+        }
+    }
+    drawTiles(ai);
+    updateUI();
+}
+
+function checkGameOver() {
+    if (player.score >= TARGET_SCORE) {
+        gameActive = false;
+        addLogEntry("🏆 Player wins!", "system");
+        addGameToHistory('win', player.score, ai.score);
+        alert("🏆 You Win!");
+        if (confirm('Play again?')) newGame();
+    } else if (ai.score >= TARGET_SCORE) {
+        gameActive = false;
+        addLogEntry("🤖 AI wins!", "system");
+        addGameToHistory('loss', player.score, ai.score);
+        alert("🤖 AI Wins!");
+        if (confirm('Play again?')) newGame();
+    }
+}
+
+// Expose functions to global scope
+window.submitMove = submitMove;
+window.undoMove = undoMove;
+window.swapMode = swapMode;
+window.endTurn = endTurn;
+window.setDifficulty = setDifficulty;
+window.newGame = newGame;
+window.clearGameHistory = clearGameHistory;
 </script>
 </body>
 </html>
